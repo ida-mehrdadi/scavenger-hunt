@@ -66,4 +66,6 @@ const CONFIG = {
     { id: 27, section: 5, points: 10, hint: "Hint for Photo #27: (write your clue here)" },
     { id: 28, section: 5, points: 10, hint: "Hint for Photo #28: (write your clue here)" },
     { id: 29, section: 5, points: 15, hint: "Hint for Photo #29: (write your clue here)" },
-    { id: 30, section: 
+    { id: 30, section: 5, points: 20, hint: "Hint for Photo #30: (write your clue here)" }
+  ]
+};
