@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scavenger Hunt — Live Scores</title>
+<style>
+  :root {
+    --bg: #14121f;
+    --card: #1f1c30;
+    --accent: #ff6b6b;
+    --accent2: #4ecdc4;
+    --gold: #ffd166;
+    --text: #f2f0f7;
+    --muted: #8b87a0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at top, #221f36, var(--bg) 60%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 16px 60px;
+  }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .updated {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 28px;
+  }
+  .board {
+    max-width: 560px;
+    margin: 0 auto;
+    display: grid;
+    gap: 12px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px 20px;
+  }
+  .row.rank-1 { border: 2px solid var(--gold); }
+  .rank {
+    font-size: 1.3rem;
+    font-weight: 800;
+    width: 32px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .row.rank-1 .rank { color: var(--gold); }
+  .name { flex: 1; font-weight: 700; font-size: 1.05rem; }
+  .meta { font-size: 0.8rem; color: var(--muted); }
+  .score { font-size: 1.4rem; font-weight: 800; color: var(--accent2); }
+  .config-warning {
+    max-width: 560px;
+    margin: 0 auto 24px;
+    padding: 14px 18px;
+    background: #4a1f1f;
+    border-radius: 12px;
+    color: #ffcaca;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  .empty { text-align: center; color: var(--muted); margin-top: 40px; }
+</style>
+</head>
+<body>
+  <h1>🏆 Live Scores</h1>
+  <div class="updated" id="updated">Loading…</div>
+  <div id="warning"></div>
+  <div class="board" id="board"></div>
+
+<script src="config.js"></script>
+<script>
+  const configuredApi = CONFIG.API_URL && !CONFIG.API_URL.includes('PASTE_YOUR');
+  if (!configuredApi) {
+    document.getElementById('warning').innerHTML =
+      '<div class="config-warning">⚠️ API_URL isn\'t set in config.js — set it up per README.md to see live scores.</div>';
+  }
+
+  const totalPossible = CONFIG.PHOTOS.reduce((sum, p) => sum + p.points, 0);
+  const totalPhotos = CONFIG.PHOTOS.length;
+
+  async function loadScores() {
+    if (!configuredApi) return;
+    try {
+      const res = await fetch(CONFIG.API_URL);
+      const data = await res.json();
+
+      const rows = CONFIG.TEAMS.map(team => ({
+        team,
+        score: (data[team] && data[team].score) || 0,
+        found: (data[team] && data[team].found) ? data[team].found.length : 0
+      })).sort((a, b) => b.score - a.score);
+
+      const board = document.getElementById('board');
+      if (rows.every(r => r.score === 0)) {
+        board.innerHTML = '<div class="empty">No finds logged yet — scores will appear here as teams log photos.</div>';
+      } else {
+        board.innerHTML = rows.map((r, i) => `
+          <div class="row ${i === 0 && r.score > 0 ? 'rank-1' : ''}">
+            <div class="rank">${i + 1}</div>
+            <div>
+              <div class="name">${r.team}</div>
+              <div class="meta">${r.found} / ${totalPhotos} photos found</div>
+            </div>
+            <div class="score">${r.score}<span style="font-size:0.7rem;color:var(--muted)"> / ${totalPossible}</span></div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('updated').textContent =
+        'Last updated ' + new Date().toLocaleTimeString();
+    } catch (err) {
+      document.getElementById('updated').textContent = 'Failed to load scores — retrying…';
+      console.warn(err);
+    }
+  }
+
+  loadScores();
+  setInterval(loadScores, 5000);
+</script>
+</body>
+</html>

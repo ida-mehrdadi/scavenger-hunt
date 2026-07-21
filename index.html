@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photo Scavenger Hunt</title>
+<style>
+  :root {
+    --bg: #14121f;
+    --card: #1f1c30;
+    --accent: #ff6b6b;
+    --accent2: #4ecdc4;
+    --gold: #ffd166;
+    --text: #f2f0f7;
+    --muted: #8b87a0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at top, #221f36, var(--bg) 60%);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+  header {
+    text-align: center;
+    padding: 32px 16px 20px;
+  }
+  header h1 {
+    margin: 0 0 6px;
+    font-size: 1.8rem;
+  }
+  header .team-name {
+    color: var(--accent2);
+    font-weight: 700;
+  }
+  .score-bar {
+    max-width: 520px;
+    margin: 16px auto 0;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .score-bar .label { color: var(--muted); font-size: 0.85rem; }
+  .score-bar .value { font-size: 1.6rem; font-weight: 800; color: var(--gold); }
+
+  .entry-form {
+    max-width: 520px;
+    margin: 20px auto;
+    display: flex;
+    gap: 8px;
+    padding: 0 16px;
+  }
+  .entry-form input {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background: var(--card);
+    color: var(--text);
+    font-size: 1rem;
+  }
+  .entry-form input:focus { outline: none; border-color: var(--accent2); }
+  .entry-form button {
+    padding: 14px 20px;
+    border-radius: 12px;
+    border: none;
+    background: var(--accent);
+    color: #1a1a1a;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .entry-form button:hover { filter: brightness(1.1); }
+
+  #feedback {
+    max-width: 520px;
+    margin: 0 auto 10px;
+    padding: 0 16px;
+    text-align: center;
+    min-height: 20px;
+    font-weight: 600;
+  }
+  #feedback.ok { color: var(--accent2); }
+  #feedback.err { color: var(--accent); }
+
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 10px 16px;
+  }
+  .section {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .section h2 {
+    margin: 0 0 12px;
+    font-size: 1.15rem;
+    color: var(--gold);
+  }
+  .photo-list {
+    display: grid;
+    gap: 10px;
+  }
+  .photo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    transition: opacity 0.3s, background 0.3s;
+  }
+  .photo-item.found {
+    opacity: 0.4;
+    background: rgba(78, 205, 196, 0.08);
+  }
+  .photo-badge {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #1a1a1a;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+  }
+  .photo-item.found .photo-badge {
+    background: var(--accent2);
+  }
+  .photo-info { flex: 1; }
+  .photo-hint { font-size: 0.95rem; line-height: 1.4; }
+  .photo-points {
+    font-size: 0.8rem;
+    color: var(--gold);
+    font-weight: 700;
+    margin-top: 4px;
+  }
+  .found-tag {
+    font-size: 0.75rem;
+    color: var(--accent2);
+    font-weight: 700;
+  }
+  .team-picker {
+    max-width: 400px;
+    margin: 60px auto;
+    text-align: center;
+    padding: 0 16px;
+  }
+  .team-picker button {
+    display: block;
+    width: 100%;
+    margin: 8px 0;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: var(--card);
+    color: var(--text);
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .team-picker button:hover { background: var(--accent); color: #1a1a1a; }
+  .config-warning {
+    max-width: 520px;
+    margin: 20px auto;
+    padding: 14px 18px;
+    background: #4a1f1f;
+    border-radius: 12px;
+    color: #ffcaca;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const teamParam = params.get('team');
+  const app = document.getElementById('app');
+
+  const configuredApi = CONFIG.API_URL && !CONFIG.API_URL.includes('PASTE_YOUR');
+
+  // ---- seeded shuffle so each team always gets the same random order ----
+  function hashString(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+    }
+    return h >>> 0;
+  }
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function seededShuffle(arr, seed) {
+    const rand = mulberry32(seed);
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  if (!teamParam) {
+    renderTeamPicker();
+  } else {
+    renderHunt(teamParam);
+  }
+
+  function renderTeamPicker() {
+    app.innerHTML = `
+      <div class="team-picker">
+        <h1>🔎 Photo Scavenger Hunt</h1>
+        <p style="color:var(--muted)">Pick your team to start (or use the link you were given):</p>
+        ${CONFIG.TEAMS.map(t => `<button data-team="${t}">${t}</button>`).join('')}
+      </div>
+    `;
+    app.querySelectorAll('button[data-team]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('team', btn.dataset.team);
+        window.location.href = url.toString();
+      });
+    });
+  }
+
+  function renderHunt(team) {
+    const seed = hashString(team);
+    const sectionOrder = seededShuffle(CONFIG.SECTIONS.map((_, i) => i), seed);
+
+    const foundSet = new Set(
+      JSON.parse(localStorage.getItem('found_' + team) || '[]').map(String)
+    );
+    let score = 0;
+
+    function recalcScore() {
+      score = 0;
+      CONFIG.PHOTOS.forEach(p => {
+        if (foundSet.has(String(p.id))) score += p.points;
+      });
+      document.getElementById('scoreValue').textContent = score;
+    }
+
+    function saveFound() {
+      localStorage.setItem('found_' + team, JSON.stringify([...foundSet]));
+    }
+
+    app.innerHTML = `
+      ${!configuredApi ? `<div class="config-warning">⚠️ API_URL isn't set in config.js yet, so finds are only saved on this device. See README.md.</div>` : ''}
+      <header>
+        <h1>🔎 Photo Scavenger Hunt</h1>
+        <div>Team: <span class="team-name">${team}</span></div>
+      </header>
+      <div class="score-bar">
+        <span class="label">Your score</span>
+        <span class="value"><span id="scoreValue">0</span> pts</span>
+      </div>
+      <div class="entry-form">
+        <input id="photoInput" type="text" inputmode="numeric" placeholder="Found a photo? Enter its number…">
+        <button id="submitBtn">Log it</button>
+      </div>
+      <div id="feedback"></div>
+      <main id="sections"></main>
+    `;
+
+    const sectionsEl = document.getElementById('sections');
+    sectionOrder.forEach(sIdx => {
+      const sectionPhotos = CONFIG.PHOTOS.filter(p => p.section === sIdx);
+      const div = document.createElement('div');
+      div.className = 'section';
+      div.innerHTML = `
+        <h2>${CONFIG.SECTIONS[sIdx]}</h2>
+        <div class="photo-list">
+          ${sectionPhotos.map(p => photoItemHtml(p)).join('')}
+        </div>
+      `;
+      sectionsEl.appendChild(div);
+    });
+
+    function photoItemHtml(p) {
+      const isFound = foundSet.has(String(p.id));
+      return `
+        <div class="photo-item ${isFound ? 'found' : ''}" id="photo-${p.id}">
+          <div class="photo-badge">#${p.id}</div>
+          <div class="photo-info">
+            <div class="photo-hint">${p.hint}</div>
+            <div class="photo-points">${p.points} pts ${isFound ? '<span class="found-tag">• FOUND ✓</span>' : ''}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function markFound(id) {
+      foundSet.add(String(id));
+      saveFound();
+      recalcScore();
+      const el = document.getElementById('photo-' + id);
+      if (el) {
+        el.classList.add('found');
+        el.querySelector('.photo-points').innerHTML =
+          `${CONFIG.PHOTOS.find(p => p.id === id).points} pts <span class="found-tag">• FOUND ✓</span>`;
+      }
+    }
+
+    function showFeedback(msg, ok) {
+      const fb = document.getElementById('feedback');
+      fb.textContent = msg;
+      fb.className = ok ? 'ok' : 'err';
+      setTimeout(() => { fb.textContent = ''; fb.className = ''; }, 2500);
+    }
+
+    async function submitPhoto() {
+      const input = document.getElementById('photoInput');
+      const raw = input.value.trim();
+      if (!raw) return;
+      const id = parseInt(raw, 10);
+      const photo = CONFIG.PHOTOS.find(p => p.id === id);
+
+      if (!photo) {
+        showFeedback(`No photo #${raw} in this hunt.`, false);
+        return;
+      }
+      if (foundSet.has(String(id))) {
+        showFeedback(`Photo #${id} is already logged.`, false);
+        input.value = '';
+        return;
+      }
+
+      markFound(id);
+      showFeedback(`Nice! Photo #${id} logged for ${photo.points} pts.`, true);
+      input.value = '';
+
+      if (configuredApi) {
+        try {
+          await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ team, photo: id, points: photo.points })
+          });
+        } catch (err) {
+          // Local state already updated; server sync will retry on next state pull.
+          console.warn('Sync failed', err);
+        }
+      }
+    }
+
+    document.getElementById('submitBtn').addEventListener('click', submitPhoto);
+    document.getElementById('photoInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitPhoto();
+    });
+
+    recalcScore();
+
+    // Pull authoritative state from the server (covers teammates on other
+    // devices, and restores progress if this device's storage was cleared).
+    async function syncFromServer() {
+      if (!configuredApi) return;
+      try {
+        const res = await fetch(`${CONFIG.API_URL}?action=state&team=${encodeURIComponent(team)}`);
+        const data = await res.json();
+        (data.found || []).forEach(id => {
+          if (!foundSet.has(String(id))) markFound(parseInt(id, 10));
+        });
+      } catch (err) {
+        console.warn('State sync failed', err);
+      }
+    }
+    syncFromServer();
+    setInterval(syncFromServer, 15000);
+  }
+})();
+</script>
+</body>
+</html>
