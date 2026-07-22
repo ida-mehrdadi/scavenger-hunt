@@ -22,8 +22,6 @@ If someone opens the hunt page with no `?team=` in the link, they get a picker t
 
 Hint text used to sit in `config.js`, but it's been moved into `Code.gs` (your private Google Apps Script project) instead. The site only ever asks the backend for the ONE hint a team currently has up (`?action=hint&id=X`), so the public GitHub repo doesn't contain the clue list — someone browsing the repo or viewing page source won't see the hints.
 
-This isn't bulletproof: since the backend has no login, someone who deliberately wrote a script to call `?action=hint&id=1` through `id=46` could still harvest every hint. It's a much higher bar than casually reading a public file, just not absolute security — reasonable for a fun student hunt.
-
 To edit hint wording, open `Code.gs`, edit the `PHOTOS` array, then redeploy (Deploy > Manage deployments > Edit > New version).
 
 ## How it works
