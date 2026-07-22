@@ -280,13 +280,14 @@
   }
 
   function renderHunt(team) {
+    const totalPhotos = CONFIG.NUM_PHOTOS;
+    const allIds = Array.from({ length: totalPhotos }, (_, i) => i + 1);
     const seed = hashString(team);
-    const baseOrder = seededShuffle(CONFIG.PHOTOS.map(p => p.id), seed);
-    const photoById = {};
-    CONFIG.PHOTOS.forEach(p => { photoById[p.id] = p; });
+    const baseOrder = seededShuffle(allIds, seed);
 
     const queueKey = 'queue_' + team;
     const skipsKey = 'skipsUsed_' + team;
+    const hintCache = {}; // id -> hint text, fetched from the backend on demand
 
     // queue = this team's working order of NOT-YET-ANSWERED ids.
     // Skipping moves the front id to the back of this same array,
@@ -303,8 +304,12 @@
       localStorage.setItem(skipsKey, String(skipsUsed));
     }
 
+    if (!configuredApi) {
+      app.innerHTML = `<div class="config-warning">⚠️ API_URL isn't set in config.js yet. Hints live on the backend now, so the site can't work until that's configured. See README.md.</div>`;
+      return;
+    }
+
     app.innerHTML = `
-      ${!configuredApi ? `<div class="config-warning">⚠️ API_URL isn't set in config.js yet, so progress won't be saved. See README.md.</div>` : ''}
       <header>
         <h1>🔎 Photo Scavenger Hunt</h1>
         <div>Team: <span class="team-name">${team}</span></div>
@@ -316,7 +321,7 @@
         </div>
         <div class="stat">
           <span class="label">Found</span>
-          <span class="value" id="foundValue">0 / ${CONFIG.PHOTOS.length}</span>
+          <span class="value" id="foundValue">0 / ${totalPhotos}</span>
         </div>
         <div class="stat">
           <span class="label">Skips left</span>
@@ -342,26 +347,40 @@
 
     function updateStats() {
       document.getElementById('scoreValue').textContent = score;
-      document.getElementById('foundValue').textContent = `${foundCount} / ${CONFIG.PHOTOS.length}`;
+      document.getElementById('foundValue').textContent = `${foundCount} / ${totalPhotos}`;
       document.getElementById('skipsValue').textContent = Math.max(0, TOTAL_SKIPS - skipsUsed);
     }
 
-    function renderQuestion() {
+    async function fetchHint(id) {
+      if (hintCache[id]) return hintCache[id];
+      const res = await fetch(`${CONFIG.API_URL}?action=hint&id=${id}`);
+      const data = await res.json();
+      hintCache[id] = data.hint || '(hint unavailable — try refreshing)';
+      return hintCache[id];
+    }
+
+    async function renderQuestion() {
       if (queue.length === 0) {
         questionSection.innerHTML = `<div class="all-done">🎉 You've found every photo!<br>Thanks for playing.</div>`;
         return;
       }
 
       const currentId = queue[0];
-      const photo = photoById[currentId];
+      questionSection.innerHTML = `<div class="question-note">Loading your clue…</div>`;
+      const hintText = await fetchHint(currentId);
+
+      // Guard against the queue changing while the fetch was in flight
+      // (e.g. a sync just removed this id because another device found it).
+      if (queue[0] !== currentId) return;
+
       const skipsLeft = TOTAL_SKIPS - skipsUsed;
-      const optionsHtml = CONFIG.PHOTOS.map(p =>
-        `<option value="${p.id}">${p.id}</option>`
+      const optionsHtml = allIds.map(id =>
+        `<option value="${id}">${id}</option>`
       ).join('');
 
       questionSection.innerHTML = `
-        <div class="question-note">Clue ${CONFIG.PHOTOS.length - queue.length + 1} of ${CONFIG.PHOTOS.length}</div>
-        <div class="question-hint">${photo.hint}</div>
+        <div class="question-note">Clue ${totalPhotos - queue.length + 1} of ${totalPhotos}</div>
+        <div class="question-hint">${hintText}</div>
         <div class="answer-row">
           <select id="answerSelect">
             <option value="" disabled selected>Pick the number…</option>
@@ -425,17 +444,9 @@
     async function attemptAnswer(guess) {
       const currentId = queue[0];
       if (guess !== currentId) {
-        showFeedback(`Not quite — try again.`, false);
-        return;
-      }
-
-      if (!configuredApi) {
-        // No backend configured — just track locally.
         queue.shift();
         saveQueue();
-        foundCount += 1;
-        updateStats();
-        showFeedback(`Correct!`, true);
+        showFeedback(`Incorrect — moving on. No second attempt on this one.`, false);
         renderQuestion();
         return;
       }
@@ -473,9 +484,12 @@
         // Make sure anything the server says is found isn't still sitting in our queue
         // (covers teammates answering from another device).
         const foundSet = new Set(found);
-        const before = queue.length;
+        const before = queue[0];
         queue = queue.filter(id => !foundSet.has(String(id)));
-        if (queue.length !== before) saveQueue();
+        if (queue[0] !== before) {
+          saveQueue();
+          renderQuestion();
+        }
         updateStats();
       } catch (err) {
         console.warn('State refresh failed', err);

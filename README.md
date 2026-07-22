@@ -13,18 +13,26 @@ If someone opens the hunt page with no `?team=` in the link, they get a picker t
 
 ## Files
 
-- `config.js` — team names and all 46 photo hints. The file you'll usually touch.
+- `config.js` — team names, the backend URL, and the total photo count. Small file, rarely needs touching.
 - `index.html` — the page teams use: one clue at a time, answer dropdown, confirm popup.
 - `scores.html` — live-updating leaderboard, refreshes every 5 seconds.
-- `Code.gs` — backend code for a Google Apps Script project. Handles scoring and the shared Google Sheet log. Only needs re-pasting if you redeploy the backend.
+- `Code.gs` — backend code for a Google Apps Script project. Handles scoring, the shared Google Sheet log, **and now also holds all 46 hint texts** — see "Where the hints live" below.
+
+## Where the hints live
+
+Hint text used to sit in `config.js`, but it's been moved into `Code.gs` (your private Google Apps Script project) instead. The site only ever asks the backend for the ONE hint a team currently has up (`?action=hint&id=X`), so the public GitHub repo doesn't contain the clue list — someone browsing the repo or viewing page source won't see the hints.
+
+This isn't bulletproof: since the backend has no login, someone who deliberately wrote a script to call `?action=hint&id=1` through `id=46` could still harvest every hint. It's a much higher bar than casually reading a public file, just not absolute security — reasonable for a fun student hunt.
+
+To edit hint wording, open `Code.gs`, edit the `PHOTOS` array, then redeploy (Deploy > Manage deployments > Edit > New version).
 
 ## How it works
 
 Each team sees all 46 clues, one at a time, in a randomized order that's consistent for that team (so nobody starts on the same clue). No photo numbers are shown next to a clue — teams have to actually find the matching photo, read the number off the back, and pick it from a dropdown (1–46). A confirm popup avoids accidental taps before it submits.
 
 - **Correct answer:** locked in, removed from that team's remaining clues, points awarded.
-- **Wrong answer:** clue stays put, they can try again.
-- **Skip:** each team gets 3 skips total for the whole hunt. Skipping sends that clue to the back of their own queue, so it naturally comes back around once they've gone through everything else — no separate "final round" needed.
+- **Wrong answer:** one shot only — that clue is gone for good, no retry, and it moves straight to the next one. (This is why the confirm popup matters — a mis-tap costs a clue.)
+- **Skip:** each team gets 3 skips total for the whole hunt. Skipping sends that clue to the back of their own queue, so it naturally comes back around once they've gone through everything else — no separate "final round" needed. Unlike a wrong answer, a skipped clue can still be answered later.
 
 **Points are dynamic, not fixed.** The first time *any* team correctly answers a given photo, its point value gets locked in based on how much of the hunt's time had elapsed at that moment — found early, worth less; found late, worth more. Every other team who later answers that same photo gets that same locked-in value, so scoring reflects how hard a photo turned out to be for the group as a whole, not just when one specific team got to it. This is configured at the top of `Code.gs`:
 
@@ -39,7 +47,11 @@ const MAX_POINTS = 30;                                  // points for a late fin
 
 ## Editing content
 
-Open `config.js` and update `TEAMS` and the `hint` text in `PHOTOS`. Number your printed/hidden photos to match the `id` values so people know what to type in. All 46 hints are already written — tweak wording as needed, but no placeholders are left.
+- **Hints:** open `Code.gs`, edit the `hint` text in the `PHOTOS` array, redeploy.
+- **Teams:** open `config.js`, edit the `TEAMS` array, re-upload to GitHub.
+- **Number of photos:** if you add/remove photos, update both the `PHOTOS` array in `Code.gs` (ids should stay 1..N with no gaps) and `NUM_PHOTOS` in `config.js` to match, then redeploy/re-upload both.
+
+Number your printed/hidden photos to match the `id` values so people know what to type in.
 
 ## Hint difficulty
 
@@ -55,4 +67,5 @@ If you add or rewrite hints later, try to keep that spread rather than making ev
 
 1. Update `HUNT_START` / `HUNT_DURATION_MINUTES` in `Code.gs` and redeploy.
 2. Do a full dry run: open a link for a fake team, answer a clue correctly, confirm it shows up on `scores.html` and in the Google Sheet with a sensible point value.
-3. Try a skip and a wrong answer too, just to see the flow.
+3. Try a skip and a wrong answer too, just to see the flow (remember: wrong answers don't get a second attempt).
+4. Test on the actual venue WiFi if possible — some networks block `script.google.com` even when general browsing works.
