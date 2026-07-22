@@ -83,7 +83,7 @@
       '<div class="config-warning">⚠️ API_URL isn\'t set in config.js — set it up per README.md to see live scores.</div>';
   }
 
-  const totalPhotos = CONFIG.PHOTOS.length;
+  const totalPhotos = CONFIG.NUM_PHOTOS;
 
   async function loadScores() {
     if (!configuredApi) return;

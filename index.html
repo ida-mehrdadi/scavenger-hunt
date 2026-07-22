@@ -393,12 +393,12 @@
         </button>
       `;
 
-      document.getElementById('submitBtn').addEventListener('click', onSubmitClick);
+      document.getElementById('submitBtn').addEventListener('click', () => onSubmitClick(currentId));
       const skipBtn = document.getElementById('skipBtn');
       if (skipsLeft > 0) {
         skipBtn.addEventListener('click', () => {
-          const skipped = queue.shift();
-          queue.push(skipped);
+          queue = queue.filter(id => id !== currentId);
+          queue.push(currentId);
           skipsUsed += 1;
           saveQueue();
           saveSkips();
@@ -408,11 +408,11 @@
       }
     }
 
-    function onSubmitClick() {
+    function onSubmitClick(shownId) {
       const select = document.getElementById('answerSelect');
       const val = select.value;
       if (!val) return;
-      showModal(`Submit #${val} as your answer for this clue?`, () => attemptAnswer(parseInt(val, 10)));
+      showModal(`Submit #${val} as your answer for this clue?`, () => attemptAnswer(parseInt(val, 10), shownId));
     }
 
     function showModal(text, onConfirm) {
@@ -441,12 +441,14 @@
       setTimeout(() => { fb.textContent = ''; fb.className = ''; }, 3000);
     }
 
-    async function attemptAnswer(guess) {
-      const currentId = queue[0];
-      if (guess !== currentId) {
-        queue.shift();
+    async function attemptAnswer(guess, shownId) {
+      // Compare against the id that was actually on screen when the user
+      // hit Submit — not a freshly-read queue[0], which could in theory
+      // have shifted underneath them from a background sync.
+      if (guess !== shownId) {
+        queue = queue.filter(id => id !== shownId);
         saveQueue();
-        showFeedback(`Incorrect — moving on. No second attempt on this one.`, false);
+        showFeedback(`Wrong answer, no backsies.`, false);
         renderQuestion();
         return;
       }
@@ -459,7 +461,7 @@
         });
         const data = await res.json();
 
-        queue.shift();
+        queue = queue.filter(id => id !== shownId);
         saveQueue();
         showFeedback(`Correct! +${data.points || 0} pts`, true);
         await refreshFromServer();
@@ -467,7 +469,7 @@
       } catch (err) {
         console.warn('Submit failed', err);
         showFeedback('Correct, but syncing failed — will retry automatically.', true);
-        queue.shift();
+        queue = queue.filter(id => id !== shownId);
         saveQueue();
         renderQuestion();
       }
