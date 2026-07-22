@@ -35,7 +35,7 @@
     color: var(--accent2);
     font-weight: 700;
   }
-  .score-bar {
+  .stat-bar {
     max-width: 520px;
     margin: 16px auto 0;
     background: var(--card);
@@ -44,43 +44,20 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
   }
-  .score-bar .label { color: var(--muted); font-size: 0.85rem; }
-  .score-bar .value { font-size: 1.6rem; font-weight: 800; color: var(--gold); }
-
-  .entry-form {
-    max-width: 520px;
-    margin: 20px auto;
-    display: flex;
-    gap: 8px;
-    padding: 0 16px;
-  }
-  .entry-form input {
+  .stat {
+    text-align: center;
     flex: 1;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 2px solid transparent;
-    background: var(--card);
-    color: var(--text);
-    font-size: 1rem;
   }
-  .entry-form input:focus { outline: none; border-color: var(--accent2); }
-  .entry-form button {
-    padding: 14px 20px;
-    border-radius: 12px;
-    border: none;
-    background: var(--accent);
-    color: #1a1a1a;
-    font-weight: 700;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-  .entry-form button:hover { filter: brightness(1.1); }
+  .stat .label { color: var(--muted); font-size: 0.75rem; display: block; }
+  .stat .value { font-size: 1.3rem; font-weight: 800; color: var(--gold); }
+  .stat .value.skips { color: var(--accent2); }
 
   #feedback {
     max-width: 520px;
-    margin: 0 auto 10px;
+    margin: 14px auto 0;
     padding: 0 16px;
     text-align: center;
     min-height: 20px;
@@ -90,67 +67,76 @@
   #feedback.err { color: var(--accent); }
 
   main {
-    max-width: 720px;
+    max-width: 560px;
     margin: 0 auto;
     padding: 10px 16px;
   }
   .section {
     background: var(--card);
     border-radius: 18px;
-    padding: 18px 20px;
+    padding: 28px 24px;
     margin-bottom: 18px;
+    text-align: center;
   }
-  .section h2 {
-    margin: 0 0 12px;
-    font-size: 1.15rem;
-    color: var(--gold);
+  .question-note {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 14px;
   }
-  .photo-list {
-    display: grid;
-    gap: 10px;
+  .question-hint {
+    font-size: 1.25rem;
+    line-height: 1.5;
+    margin-bottom: 24px;
   }
-  .photo-item {
+  .answer-row {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .answer-row select {
+    flex: 1;
+    min-width: 160px;
+    padding: 14px 16px;
     border-radius: 12px;
-    background: rgba(255,255,255,0.03);
-    transition: opacity 0.3s, background 0.3s;
+    border: 2px solid transparent;
+    background: #14121f;
+    color: var(--text);
+    font-size: 1rem;
   }
-  .photo-item.found {
-    opacity: 0.4;
-    background: rgba(78, 205, 196, 0.08);
-  }
-  .photo-badge {
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+  .answer-row select:focus { outline: none; border-color: var(--accent2); }
+  .answer-row button {
+    padding: 14px 22px;
+    border-radius: 12px;
+    border: none;
     background: var(--accent);
     color: #1a1a1a;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.95rem;
-  }
-  .photo-item.found .photo-badge {
-    background: var(--accent2);
-  }
-  .photo-info { flex: 1; }
-  .photo-hint { font-size: 0.95rem; line-height: 1.4; }
-  .photo-points {
-    font-size: 0.8rem;
-    color: var(--gold);
     font-weight: 700;
-    margin-top: 4px;
+    cursor: pointer;
+    font-size: 1rem;
   }
-  .found-tag {
-    font-size: 0.75rem;
-    color: var(--accent2);
-    font-weight: 700;
+  .answer-row button:hover { filter: brightness(1.1); }
+  .skip-btn {
+    margin-top: 16px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.85rem;
   }
+  .skip-btn:hover { color: var(--text); }
+  .skip-btn:disabled {
+    color: #4a4760;
+    cursor: not-allowed;
+    text-decoration: none;
+  }
+
+  .all-done {
+    font-size: 1.2rem;
+    line-height: 1.6;
+  }
+
   .team-picker {
     max-width: 400px;
     margin: 60px auto;
@@ -180,6 +166,54 @@
     font-size: 0.9rem;
     text-align: center;
   }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 100;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 28px 24px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  .modal-card p {
+    font-size: 1.05rem;
+    margin: 0 0 20px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .modal-actions button {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .modal-actions .btn-confirm {
+    background: var(--accent2);
+    color: #0d1b1a;
+  }
+  .modal-actions .btn-cancel {
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+  }
+  .modal-actions button:hover { filter: brightness(1.1); }
 </style>
 </head>
 <body>
@@ -192,6 +226,7 @@
   const params = new URLSearchParams(window.location.search);
   const teamParam = params.get('team');
   const app = document.getElementById('app');
+  const TOTAL_SKIPS = 3;
 
   const configuredApi = CONFIG.API_URL && !CONFIG.API_URL.includes('PASTE_YOUR');
 
@@ -246,147 +281,210 @@
 
   function renderHunt(team) {
     const seed = hashString(team);
-    const sectionOrder = seededShuffle(CONFIG.SECTIONS.map((_, i) => i), seed);
+    const baseOrder = seededShuffle(CONFIG.PHOTOS.map(p => p.id), seed);
+    const photoById = {};
+    CONFIG.PHOTOS.forEach(p => { photoById[p.id] = p; });
 
-    const foundSet = new Set(
-      JSON.parse(localStorage.getItem('found_' + team) || '[]').map(String)
-    );
+    const queueKey = 'queue_' + team;
+    const skipsKey = 'skipsUsed_' + team;
+
+    // queue = this team's working order of NOT-YET-ANSWERED ids.
+    // Skipping moves the front id to the back of this same array,
+    // so skipped clues naturally come back around at the end.
+    let queue = JSON.parse(localStorage.getItem(queueKey) || 'null') || baseOrder.slice();
+    let skipsUsed = parseInt(localStorage.getItem(skipsKey) || '0', 10);
     let score = 0;
+    let foundCount = 0;
 
-    function recalcScore() {
-      score = 0;
-      CONFIG.PHOTOS.forEach(p => {
-        if (foundSet.has(String(p.id))) score += p.points;
-      });
-      document.getElementById('scoreValue').textContent = score;
+    function saveQueue() {
+      localStorage.setItem(queueKey, JSON.stringify(queue));
     }
-
-    function saveFound() {
-      localStorage.setItem('found_' + team, JSON.stringify([...foundSet]));
+    function saveSkips() {
+      localStorage.setItem(skipsKey, String(skipsUsed));
     }
 
     app.innerHTML = `
-      ${!configuredApi ? `<div class="config-warning">⚠️ API_URL isn't set in config.js yet, so finds are only saved on this device. See README.md.</div>` : ''}
+      ${!configuredApi ? `<div class="config-warning">⚠️ API_URL isn't set in config.js yet, so progress won't be saved. See README.md.</div>` : ''}
       <header>
         <h1>🔎 Photo Scavenger Hunt</h1>
         <div>Team: <span class="team-name">${team}</span></div>
       </header>
-      <div class="score-bar">
-        <span class="label">Your score</span>
-        <span class="value"><span id="scoreValue">0</span> pts</span>
-      </div>
-      <div class="entry-form">
-        <input id="photoInput" type="text" inputmode="numeric" placeholder="Found a photo? Enter its number…">
-        <button id="submitBtn">Log it</button>
+      <div class="stat-bar">
+        <div class="stat">
+          <span class="label">Score</span>
+          <span class="value" id="scoreValue">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Found</span>
+          <span class="value" id="foundValue">0 / ${CONFIG.PHOTOS.length}</span>
+        </div>
+        <div class="stat">
+          <span class="label">Skips left</span>
+          <span class="value skips" id="skipsValue">${TOTAL_SKIPS}</span>
+        </div>
       </div>
       <div id="feedback"></div>
-      <main id="sections"></main>
-    `;
-
-    const sectionsEl = document.getElementById('sections');
-    sectionOrder.forEach(sIdx => {
-      const sectionPhotos = CONFIG.PHOTOS.filter(p => p.section === sIdx);
-      const div = document.createElement('div');
-      div.className = 'section';
-      div.innerHTML = `
-        <h2>${CONFIG.SECTIONS[sIdx]}</h2>
-        <div class="photo-list">
-          ${sectionPhotos.map(p => photoItemHtml(p)).join('')}
-        </div>
-      `;
-      sectionsEl.appendChild(div);
-    });
-
-    function photoItemHtml(p) {
-      const isFound = foundSet.has(String(p.id));
-      return `
-        <div class="photo-item ${isFound ? 'found' : ''}" id="photo-${p.id}">
-          <div class="photo-badge">#${p.id}</div>
-          <div class="photo-info">
-            <div class="photo-hint">${p.hint}</div>
-            <div class="photo-points">${p.points} pts ${isFound ? '<span class="found-tag">• FOUND ✓</span>' : ''}</div>
+      <main>
+        <div class="section" id="questionSection"></div>
+      </main>
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card">
+          <p id="modalText"></p>
+          <div class="modal-actions">
+            <button class="btn-cancel" id="modalCancel">Cancel</button>
+            <button class="btn-confirm" id="modalConfirm">Yes, submit</button>
           </div>
         </div>
-      `;
+      </div>
+    `;
+
+    const questionSection = document.getElementById('questionSection');
+
+    function updateStats() {
+      document.getElementById('scoreValue').textContent = score;
+      document.getElementById('foundValue').textContent = `${foundCount} / ${CONFIG.PHOTOS.length}`;
+      document.getElementById('skipsValue').textContent = Math.max(0, TOTAL_SKIPS - skipsUsed);
     }
 
-    function markFound(id) {
-      foundSet.add(String(id));
-      saveFound();
-      recalcScore();
-      const el = document.getElementById('photo-' + id);
-      if (el) {
-        el.classList.add('found');
-        el.querySelector('.photo-points').innerHTML =
-          `${CONFIG.PHOTOS.find(p => p.id === id).points} pts <span class="found-tag">• FOUND ✓</span>`;
+    function renderQuestion() {
+      if (queue.length === 0) {
+        questionSection.innerHTML = `<div class="all-done">🎉 You've found every photo!<br>Thanks for playing.</div>`;
+        return;
       }
+
+      const currentId = queue[0];
+      const photo = photoById[currentId];
+      const skipsLeft = TOTAL_SKIPS - skipsUsed;
+      const optionsHtml = CONFIG.PHOTOS.map(p =>
+        `<option value="${p.id}">${p.id}</option>`
+      ).join('');
+
+      questionSection.innerHTML = `
+        <div class="question-note">Clue ${CONFIG.PHOTOS.length - queue.length + 1} of ${CONFIG.PHOTOS.length}</div>
+        <div class="question-hint">${photo.hint}</div>
+        <div class="answer-row">
+          <select id="answerSelect">
+            <option value="" disabled selected>Pick the number…</option>
+            ${optionsHtml}
+          </select>
+          <button id="submitBtn">Submit</button>
+        </div>
+        <button class="skip-btn" id="skipBtn" ${skipsLeft <= 0 ? 'disabled' : ''}>
+          ${skipsLeft > 0 ? `Skip this one for now (${skipsLeft} left)` : 'No skips left'}
+        </button>
+      `;
+
+      document.getElementById('submitBtn').addEventListener('click', onSubmitClick);
+      const skipBtn = document.getElementById('skipBtn');
+      if (skipsLeft > 0) {
+        skipBtn.addEventListener('click', () => {
+          const skipped = queue.shift();
+          queue.push(skipped);
+          skipsUsed += 1;
+          saveQueue();
+          saveSkips();
+          updateStats();
+          renderQuestion();
+        });
+      }
+    }
+
+    function onSubmitClick() {
+      const select = document.getElementById('answerSelect');
+      const val = select.value;
+      if (!val) return;
+      showModal(`Submit #${val} as your answer for this clue?`, () => attemptAnswer(parseInt(val, 10)));
+    }
+
+    function showModal(text, onConfirm) {
+      const overlay = document.getElementById('modalOverlay');
+      const confirmBtn = document.getElementById('modalConfirm');
+      const cancelBtn = document.getElementById('modalCancel');
+      document.getElementById('modalText').textContent = text;
+      overlay.classList.add('open');
+
+      function cleanup() {
+        overlay.classList.remove('open');
+        confirmBtn.removeEventListener('click', confirmHandler);
+        cancelBtn.removeEventListener('click', cancelHandler);
+      }
+      function confirmHandler() { cleanup(); onConfirm(); }
+      function cancelHandler() { cleanup(); }
+
+      confirmBtn.addEventListener('click', confirmHandler);
+      cancelBtn.addEventListener('click', cancelHandler);
     }
 
     function showFeedback(msg, ok) {
       const fb = document.getElementById('feedback');
       fb.textContent = msg;
       fb.className = ok ? 'ok' : 'err';
-      setTimeout(() => { fb.textContent = ''; fb.className = ''; }, 2500);
+      setTimeout(() => { fb.textContent = ''; fb.className = ''; }, 3000);
     }
 
-    async function submitPhoto() {
-      const input = document.getElementById('photoInput');
-      const raw = input.value.trim();
-      if (!raw) return;
-      const id = parseInt(raw, 10);
-      const photo = CONFIG.PHOTOS.find(p => p.id === id);
-
-      if (!photo) {
-        showFeedback(`No photo #${raw} in this hunt.`, false);
-        return;
-      }
-      if (foundSet.has(String(id))) {
-        showFeedback(`Photo #${id} is already logged.`, false);
-        input.value = '';
+    async function attemptAnswer(guess) {
+      const currentId = queue[0];
+      if (guess !== currentId) {
+        showFeedback(`Not quite — try again.`, false);
         return;
       }
 
-      markFound(id);
-      showFeedback(`Nice! Photo #${id} logged for ${photo.points} pts.`, true);
-      input.value = '';
+      if (!configuredApi) {
+        // No backend configured — just track locally.
+        queue.shift();
+        saveQueue();
+        foundCount += 1;
+        updateStats();
+        showFeedback(`Correct!`, true);
+        renderQuestion();
+        return;
+      }
 
-      if (configuredApi) {
-        try {
-          await fetch(CONFIG.API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ team, photo: id, points: photo.points })
-          });
-        } catch (err) {
-          // Local state already updated; server sync will retry on next state pull.
-          console.warn('Sync failed', err);
-        }
+      try {
+        const res = await fetch(CONFIG.API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ team, photo: guess })
+        });
+        const data = await res.json();
+
+        queue.shift();
+        saveQueue();
+        showFeedback(`Correct! +${data.points || 0} pts`, true);
+        await refreshFromServer();
+        renderQuestion();
+      } catch (err) {
+        console.warn('Submit failed', err);
+        showFeedback('Correct, but syncing failed — will retry automatically.', true);
+        queue.shift();
+        saveQueue();
+        renderQuestion();
       }
     }
 
-    document.getElementById('submitBtn').addEventListener('click', submitPhoto);
-    document.getElementById('photoInput').addEventListener('keydown', e => {
-      if (e.key === 'Enter') submitPhoto();
-    });
-
-    recalcScore();
-
-    // Pull authoritative state from the server (covers teammates on other
-    // devices, and restores progress if this device's storage was cleared).
-    async function syncFromServer() {
+    async function refreshFromServer() {
       if (!configuredApi) return;
       try {
         const res = await fetch(`${CONFIG.API_URL}?action=state&team=${encodeURIComponent(team)}`);
         const data = await res.json();
-        (data.found || []).forEach(id => {
-          if (!foundSet.has(String(id))) markFound(parseInt(id, 10));
-        });
+        score = data.score || 0;
+        const found = (data.found || []).map(String);
+        foundCount = found.length;
+        // Make sure anything the server says is found isn't still sitting in our queue
+        // (covers teammates answering from another device).
+        const foundSet = new Set(found);
+        const before = queue.length;
+        queue = queue.filter(id => !foundSet.has(String(id)));
+        if (queue.length !== before) saveQueue();
+        updateStats();
       } catch (err) {
-        console.warn('State sync failed', err);
+        console.warn('State refresh failed', err);
       }
     }
-    syncFromServer();
-    setInterval(syncFromServer, 15000);
+
+    updateStats();
+    refreshFromServer().then(renderQuestion);
+    setInterval(refreshFromServer, 15000);
   }
 })();
 </script>

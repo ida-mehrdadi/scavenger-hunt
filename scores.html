@@ -83,7 +83,6 @@
       '<div class="config-warning">⚠️ API_URL isn\'t set in config.js — set it up per README.md to see live scores.</div>';
   }
 
-  const totalPossible = CONFIG.PHOTOS.reduce((sum, p) => sum + p.points, 0);
   const totalPhotos = CONFIG.PHOTOS.length;
 
   async function loadScores() {
@@ -109,7 +108,7 @@
               <div class="name">${r.team}</div>
               <div class="meta">${r.found} / ${totalPhotos} photos found</div>
             </div>
-            <div class="score">${r.score}<span style="font-size:0.7rem;color:var(--muted)"> / ${totalPossible}</span></div>
+            <div class="score">${r.score}<span style="font-size:0.7rem;color:var(--muted)"> pts</span></div>
           </div>
         `).join('');
       }
