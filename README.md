@@ -22,6 +22,8 @@ If someone opens the hunt page with no `?team=` in the link, they get a picker t
 
 Hint text used to sit in `config.js`, but it's been moved into `Code.gs` (your private Google Apps Script project) instead. The site only ever asks the backend for the ONE hint a team currently has up (`?action=hint&id=X`), so the public GitHub repo doesn't contain the clue list — someone browsing the repo or viewing page source won't see the hints.
 
+This isn't bulletproof: since the backend has no login, someone who deliberately wrote a script to call `?action=hint&id=1` through `id=46` could still harvest every hint. It's a much higher bar than casually reading a public file, just not absolute security — reasonable for a fun student hunt.
+
 To edit hint wording, open `Code.gs`, edit the `PHOTOS` array, then redeploy (Deploy > Manage deployments > Edit > New version).
 
 ## How it works
@@ -39,7 +41,10 @@ const HUNT_START = new Date('2026-07-25T14:00:00');   // hunt start date/time
 const HUNT_DURATION_MINUTES = 90;                       // how long the hunt runs
 const MIN_POINTS = 10;                                  // points for an early find
 const MAX_POINTS = 30;                                  // points for a late find
+const SKIP_BONUS = 10;                                  // extra points per GLOBAL skip on a photo
 ```
+
+**Skip bonus is global, not personal.** Every skip button press — from *any* team — gets logged to a `Skips` sheet in the background. When a photo is finally answered correctly for the first time, its locked-in point value includes `+SKIP_BONUS` for every skip anyone has logged against it up to that point (1 total skip anywhere = `+SKIP_BONUS`, 2 skips = `+2×SKIP_BONUS`, etc.). That combined value then gets reused by every team, same as the base points — so if Team A and Team B both skip photo #40 and Team C is the one who finally solves it, Team C gets the bonus from all those skips, not just their own. No team is rewarded more or less based on their *own* skip history; it's purely about how many times the group collectively passed on that clue before someone landed it.
 
 **You must edit `HUNT_START` and `HUNT_DURATION_MINUTES` in `Code.gs` before the real event**, then redeploy (Deploy > Manage deployments > Edit > New version). If the hunt runs long or short, the scaling just clamps at MIN/MAX past either end — nothing breaks.
 
@@ -66,4 +71,5 @@ If you add or rewrite hints later, try to keep that spread rather than making ev
 1. Update `HUNT_START` / `HUNT_DURATION_MINUTES` in `Code.gs` and redeploy.
 2. Do a full dry run: open a link for a fake team, answer a clue correctly, confirm it shows up on `scores.html` and in the Google Sheet with a sensible point value.
 3. Try a skip and a wrong answer too, just to see the flow (remember: wrong answers don't get a second attempt).
-4. Test on the actual venue WiFi if possible — some networks block `script.google.com` even when general browsing works.
+4. Clear out test data before the real event — delete all rows (except the header) from both the `Log` sheet **and** the `Skips` sheet in your Google Sheet.
+5. Test on the actual venue WiFi if possible — some networks block `script.google.com` even when general browsing works.

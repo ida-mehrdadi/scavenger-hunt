@@ -293,6 +293,11 @@
     // Skipping moves the front id to the back of this same array,
     // so skipped clues naturally come back around at the end.
     let queue = JSON.parse(localStorage.getItem(queueKey) || 'null') || baseOrder.slice();
+    // skipsUsed is just this team's own budget (3 total skips for the
+    // whole hunt) — it doesn't affect anyone's score. The skip BONUS is
+    // global and tracked entirely server-side (see Code.gs / Skips sheet):
+    // every skip from any team raises the eventual point value for that
+    // photo, no matter who ends up answering it correctly.
     let skipsUsed = parseInt(localStorage.getItem(skipsKey) || '0', 10);
     let score = 0;
     let foundCount = 0;
@@ -404,6 +409,15 @@
           saveSkips();
           updateStats();
           renderQuestion();
+          // Tell the backend this clue got skipped — raises its global
+          // bonus for whoever eventually answers it. Fire-and-forget: a
+          // failed skip-log just means a smaller bonus later, not a
+          // broken hunt, so don't block the UI on it.
+          fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ team, photo: currentId, type: 'skip' })
+          }).catch(err => console.warn('Skip log failed', err));
         });
       }
     }
@@ -463,7 +477,8 @@
 
         queue = queue.filter(id => id !== shownId);
         saveQueue();
-        showFeedback(`Correct! +${data.points || 0} pts`, true);
+        const bonusNote = data.skipBonus ? ` (includes +${data.skipBonus} bonus — this one was skipped a lot!)` : '';
+        showFeedback(`Correct! +${data.points || 0} pts${bonusNote}`, true);
         await refreshFromServer();
         renderQuestion();
       } catch (err) {
