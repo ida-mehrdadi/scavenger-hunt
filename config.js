@@ -19,5 +19,5 @@ const CONFIG = {
 
   // Total number of photos hidden (ids are assumed to be 1..NUM_PHOTOS).
   // Must match the number of entries in the PHOTOS array in Code.gs.
-  NUM_PHOTOS: 46
+  NUM_PHOTOS: 47
 };
